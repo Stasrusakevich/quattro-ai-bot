@@ -24,8 +24,6 @@ TEXT_MODEL = "llama-3.1-8b-instant"
 VOICE_MODEL = "whisper-large-v3"
 
 MAX_HISTORY_MESSAGES = 12
-
-# После команды /myid вставь сюда свой Telegram ID
 ADMIN_IDS = []
 
 user_histories = {}
@@ -124,8 +122,6 @@ def save_memory(text):
 
 
 def is_admin(user_id):
-    # Если ADMIN_IDS пустой — команда /remember временно доступна всем.
-    # После проверки /myid лучше вставить свой ID в ADMIN_IDS.
     if not ADMIN_IDS:
         return True
     return user_id in ADMIN_IDS
@@ -235,28 +231,52 @@ def ask_ai(user_id, user_text):
     return answer
 
 
-@bot.message_handler(commands=["start", "help"])
+def main_menu():
+    markup = types.ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        row_width=2
+    )
+
+    buttons = [
+        types.KeyboardButton("🎯 Продажи"),
+        types.KeyboardButton("⚙️ Операционка"),
+        types.KeyboardButton("👥 HR"),
+        types.KeyboardButton("📢 Контент"),
+        types.KeyboardButton("💰 Финансы"),
+        types.KeyboardButton("🎬 Реализация"),
+        types.KeyboardButton("📋 Event Check"),
+        types.KeyboardButton("🧠 Очистить диалог"),
+        types.KeyboardButton("📌 Текущий режим"),
+        types.KeyboardButton("🆔 Мой ID")
+    ]
+
+    markup.add(*buttons)
+    return markup
+
+
+@bot.message_handler(commands=["start", "help", "menu"])
 def help_command(message):
     text = """
 Я AI-ассистент Quattro Space.
 
-Команды:
-/sales — режим продаж
-/ops — операционный режим
-/hr — сотрудники и управление
-/content — контент для канала
-/finance — финансы
-/producer — режим реализатора мероприятия
-/eventcheck — чек-лист перед мероприятием
-/default — обычный режим
-/mode — показать текущий режим
-/reset — очистить память текущего диалога
-/remember — добавить информацию в память
-/myid — показать твой Telegram ID
+Выбери режим кнопкой ниже или напиши задачу текстом.
+
+Доступные режимы:
+🎯 Продажи
+⚙️ Операционка
+👥 HR
+📢 Контент
+💰 Финансы
+🎬 Реализация
+📋 Event Check
 
 Можно писать текстом или отправлять голосовые.
 """
-    bot.reply_to(message, text)
+    bot.send_message(
+        message.chat.id,
+        text,
+        reply_markup=main_menu()
+    )
 
 
 @bot.message_handler(commands=["myid"])
@@ -334,9 +354,8 @@ def default_command(message):
     bot.reply_to(message, "Включен обычный режим.")
 
 
-@bot.message_handler(commands=["eventcheck"])
-def eventcheck_command(message):
-    checklist = """
+def get_event_checklist():
+    return """
 PRE-EVENT CHECK-LIST
 
 1. Клиент и вводные
@@ -405,7 +424,69 @@ PRE-EVENT CHECK-LIST
 — клиент встретен
 — тайминг у всех ответственных
 """
-    bot.reply_to(message, checklist)
+
+
+@bot.message_handler(commands=["eventcheck"])
+def eventcheck_command(message):
+    bot.reply_to(message, get_event_checklist())
+
+
+@bot.message_handler(func=lambda message: message.text == "🎯 Продажи")
+def menu_sales(message):
+    set_user_mode(message.from_user.id, "sales")
+    bot.reply_to(message, "Включен режим продаж.")
+
+
+@bot.message_handler(func=lambda message: message.text == "⚙️ Операционка")
+def menu_ops(message):
+    set_user_mode(message.from_user.id, "ops")
+    bot.reply_to(message, "Включен операционный режим.")
+
+
+@bot.message_handler(func=lambda message: message.text == "👥 HR")
+def menu_hr(message):
+    set_user_mode(message.from_user.id, "hr")
+    bot.reply_to(message, "Включен HR-режим.")
+
+
+@bot.message_handler(func=lambda message: message.text == "📢 Контент")
+def menu_content(message):
+    set_user_mode(message.from_user.id, "content")
+    bot.reply_to(message, "Включен режим контента.")
+
+
+@bot.message_handler(func=lambda message: message.text == "💰 Финансы")
+def menu_finance(message):
+    set_user_mode(message.from_user.id, "finance")
+    bot.reply_to(message, "Включен финансовый режим.")
+
+
+@bot.message_handler(func=lambda message: message.text == "🎬 Реализация")
+def menu_producer(message):
+    set_user_mode(message.from_user.id, "producer")
+    bot.reply_to(message, "Включен режим реализатора мероприятия.")
+
+
+@bot.message_handler(func=lambda message: message.text == "📋 Event Check")
+def menu_eventcheck(message):
+    bot.reply_to(message, get_event_checklist())
+
+
+@bot.message_handler(func=lambda message: message.text == "🧠 Очистить диалог")
+def menu_reset(message):
+    user_histories[message.from_user.id] = []
+    bot.reply_to(message, "Память текущего диалога очищена.")
+
+
+@bot.message_handler(func=lambda message: message.text == "📌 Текущий режим")
+def menu_mode(message):
+    mode = get_user_mode(message.from_user.id)
+    bot.reply_to(message, f"Текущий режим: {mode}")
+
+
+@bot.message_handler(func=lambda message: message.text == "🆔 Мой ID")
+def menu_myid(message):
+    bot.reply_to(message, f"Твой Telegram ID: {message.from_user.id}")
 
 
 @bot.message_handler(content_types=["voice"])
