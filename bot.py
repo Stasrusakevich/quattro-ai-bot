@@ -20,6 +20,11 @@ SYSTEM_PROMPT = """
 Сначала давай готовое решение, потом пояснение.
 """
 
+# Краткосрочная память диалогов
+user_histories = {}
+
+MAX_HISTORY_MESSAGES = 10
+
 
 def load_knowledge():
     try:
@@ -29,27 +34,61 @@ def load_knowledge():
         return ""
 
 
+def get_user_history(user_id):
+    if user_id not in user_histories:
+        user_histories[user_id] = []
+    return user_histories[user_id]
+
+
+@bot.message_handler(commands=["reset"])
+def reset_history(message):
+    user_id = message.from_user.id
+    user_histories[user_id] = []
+    bot.reply_to(message, "Память текущего диалога очищена.")
+
+
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
+    user_id = message.from_user.id
     user_text = message.text or ""
+
     knowledge = load_knowledge()
+    history = get_user_history(user_id)
+
+    messages = [
+        {
+            "role": "system",
+            "content": SYSTEM_PROMPT + "\n\nПамять ассистента:\n" + knowledge
+        }
+    ]
+
+    messages.extend(history)
+
+    messages.append({
+        "role": "user",
+        "content": user_text
+    })
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
-        messages=[
-            {
-                "role": "system",
-                "content": SYSTEM_PROMPT + "\n\nПамять ассистента:\n" + knowledge
-            },
-            {
-                "role": "user",
-                "content": user_text
-            }
-        ],
+        messages=messages,
         temperature=0.4
     )
 
     answer = response.choices[0].message.content
+
+    history.append({
+        "role": "user",
+        "content": user_text
+    })
+
+    history.append({
+        "role": "assistant",
+        "content": answer
+    })
+
+    user_histories[user_id] = history[-MAX_HISTORY_MESSAGES:]
+
     bot.reply_to(message, answer)
 
 
