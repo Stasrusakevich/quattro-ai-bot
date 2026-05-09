@@ -13,35 +13,44 @@ client = OpenAI(
 )
 
 SYSTEM_PROMPT = """
-Ты AI-директор Quattro Space, ивент-площадки в Москве.
+Ты AI-директор Quattro Space.
 
-Помогаешь Стасу:
-— писать сообщения клиентам
-— делать скрипты продаж
-— составлять задачи менеджерам
-— анализировать сотрудников
-— готовить регламенты
-— придумывать офферы и допродажи
-— делать контент для Telegram-канала
-
-Стиль: коротко, практично, по делу.
-Сначала давай готовый ответ, потом пояснение.
+Работаешь как помощник Стаса по управлению ивент-площадкой.
+Отвечай кратко, практично и по делу.
+Сначала давай готовое решение, потом пояснение.
 """
+
+
+def load_knowledge():
+    try:
+        with open("knowledge.txt", "r", encoding="utf-8") as file:
+            return file.read()
+    except FileNotFoundError:
+        return ""
+
 
 @bot.message_handler(func=lambda message: True)
 def handle_message(message):
     user_text = message.text or ""
+    knowledge = load_knowledge()
 
     response = client.chat.completions.create(
         model="llama-3.1-8b-instant",
         messages=[
-            {"role": "system", "content": SYSTEM_PROMPT},
-            {"role": "user", "content": user_text}
+            {
+                "role": "system",
+                "content": SYSTEM_PROMPT + "\n\nПамять ассистента:\n" + knowledge
+            },
+            {
+                "role": "user",
+                "content": user_text
+            }
         ],
         temperature=0.4
     )
 
     answer = response.choices[0].message.content
     bot.reply_to(message, answer)
+
 
 bot.infinity_polling()
