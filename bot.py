@@ -30,79 +30,70 @@ user_histories = {}
 user_modes = {}
 
 BASE_SYSTEM_PROMPT = """
-Ты AI-директор Quattro Space.
+Ты Quattro Space AI Assistant — помощник сотрудников ивент-площадки Quattro Space.
 
-Работаешь как личный помощник Стаса по управлению ивент-площадкой.
-Отвечай кратко, практично и по делу.
-Сначала давай готовый результат, потом пояснение.
-Не используй лишнюю теорию.
+Твоя задача — помогать сотрудникам в ежедневной работе:
+— обрабатывать заявки клиентов
+— подбирать залы
+— писать ответы клиентам
+— делать дожимы
+— составлять КП
+— готовить чек-листы мероприятий
+— помогать реализаторам
+— составлять задачи на день
+— работать с базой знаний площадки
+
+Стиль:
+— коротко
+— практично
+— по делу
+— без воды
+— сначала готовое решение
+— потом пояснение
+— если данных мало, задай максимум один уточняющий вопрос
 """
 
 MODES = {
     "default": """
-Режим: универсальный помощник.
-Помогай с любыми рабочими задачами Стаса.
+Режим: универсальный помощник сотрудников Quattro Space.
+Помогай с любыми рабочими задачами площадки.
 """,
 
-    "sales": """
-Режим: директор по продажам.
-Фокус: клиенты, дожимы, КП, скрипты, встречи, сделки, возражения, повторные касания.
-Пиши уверенно, но без давления.
+    "client": """
+Режим: клиент / заявка.
+Фокус: обработка заявки клиента, ответы, дожимы, возражения, уточняющие вопросы, следующий шаг.
 """,
 
-    "ops": """
-Режим: операционный управляющий.
-Фокус: задачи, регламенты, контроль сотрудников, процессы, стандарты, чек-листы, ответственность.
-Пиши конкретно и управленчески.
+    "hall": """
+Режим: подбор зала.
+Фокус: подобрать подходящий зал Quattro Space под формат, количество гостей, посадку, технику и пожелания клиента.
+Всегда предлагай 1 основной зал и 1 альтернативу, если это уместно.
 """,
 
-    "hr": """
-Режим: HR и руководитель команды.
-Фокус: сотрудники, мотивация, конфликты, KPI, обратная связь, дисциплина, найм.
-Помогай формулировать спокойно, твердо и конструктивно.
-""",
-
-    "content": """
-Режим: редактор Telegram-канала про event-индустрию.
-Фокус: посты, идеи, заголовки, сторителлинг, закулисье мероприятий, экспертный тон.
-Пиши живо, без пафоса и рекламной воды.
-""",
-
-    "finance": """
-Режим: финансовый помощник.
-Фокус: расходы, доходы, долги, планирование платежей, юнит-экономика, загрузка площадки.
-Пиши аккуратно и понятно.
+    "proposal": """
+Режим: КП / коммерческое предложение.
+Фокус: составить структуру КП, короткое сообщение клиенту, официальное письмо, предложение по залу, еде, бару, технике и допродажам.
 """,
 
     "producer": """
-Режим: реализатор мероприятия / event producer.
+Режим: реализация мероприятия / event producer.
+Фокус: чек-листы, тайминг, пожелания клиента, зоны ответственности, подрядчики, техника, монтаж, демонтаж и контроль перед стартом.
+""",
 
-Фокус:
-— подготовка мероприятия
-— чек-листы реализации
-— пожелания клиента
-— тайминг
-— зоны ответственности
-— подрядчики
-— техника
-— банкет / фуршет / welcome
-— монтаж и демонтаж
-— контроль перед стартом
+    "tasks": """
+Режим: задачи на день.
+Фокус: составить план задач для менеджера, реализатора, операционного сотрудника или руководителя.
+Если заявок мало — предложить полезные действия без холодного поиска.
+""",
 
-Всегда структурируй ответ:
-1. Краткое резюме мероприятия
-2. Чек-лист подготовки
-3. Что уточнить у клиента
-4. Риски
-5. Контроль в день мероприятия
-6. Следующий шаг
+    "knowledge": """
+Режим: база знаний.
+Фокус: отвечать по информации о Quattro Space, залах, вместимости, форматах, регламентах, правилах и частых вопросах.
+""",
 
-Пиши как опытный реализатор:
-— конкретно
-— спокойно
-— без воды
-— без лишней теории
-— с пониманием event-индустрии
+    "team": """
+Режим: сотрудники / команда.
+Фокус: разбор сообщений сотрудников, обратная связь, постановка задач, KPI, конфликты, регламенты.
 """
 }
 
@@ -151,7 +142,7 @@ def build_system_prompt(user_id):
 
 {mode_prompt}
 
-Память ассистента:
+База знаний Quattro Space:
 {knowledge}
 """
 
@@ -238,120 +229,36 @@ def main_menu():
     )
 
     buttons = [
-        types.KeyboardButton("🎯 Продажи"),
-        types.KeyboardButton("⚙️ Операционка"),
-        types.KeyboardButton("👥 HR"),
-        types.KeyboardButton("📢 Контент"),
-        types.KeyboardButton("💰 Финансы"),
+        types.KeyboardButton("💬 Клиент / заявка"),
+        types.KeyboardButton("📍 Подобрать зал"),
+        types.KeyboardButton("📄 Сделать КП"),
         types.KeyboardButton("🎬 Реализация"),
-        types.KeyboardButton("📋 Event Check"),
-        types.KeyboardButton("🧠 Очистить диалог"),
-        types.KeyboardButton("📌 Текущий режим"),
-        types.KeyboardButton("🆔 Мой ID")
+        types.KeyboardButton("✅ Задачи на день"),
+        types.KeyboardButton("📚 База знаний"),
+        types.KeyboardButton("⚙️ Админ")
     ]
 
     markup.add(*buttons)
     return markup
 
 
-@bot.message_handler(commands=["start", "help", "menu"])
-def help_command(message):
-    text = """
-Я AI-ассистент Quattro Space.
-
-Выбери режим кнопкой ниже или напиши задачу текстом.
-
-Доступные режимы:
-🎯 Продажи
-⚙️ Операционка
-👥 HR
-📢 Контент
-💰 Финансы
-🎬 Реализация
-📋 Event Check
-
-Можно писать текстом или отправлять голосовые.
-"""
-    bot.send_message(
-        message.chat.id,
-        text,
-        reply_markup=main_menu()
+def admin_menu():
+    markup = types.ReplyKeyboardMarkup(
+        resize_keyboard=True,
+        row_width=2
     )
 
+    buttons = [
+        types.KeyboardButton("🧠 Добавить в память"),
+        types.KeyboardButton("👥 Команда / сотрудники"),
+        types.KeyboardButton("🧹 Очистить диалог"),
+        types.KeyboardButton("📌 Текущий режим"),
+        types.KeyboardButton("🆔 Мой ID"),
+        types.KeyboardButton("⬅️ Главное меню")
+    ]
 
-@bot.message_handler(commands=["myid"])
-def myid_command(message):
-    bot.reply_to(message, f"Твой Telegram ID: {message.from_user.id}")
-
-
-@bot.message_handler(commands=["mode"])
-def mode_command(message):
-    mode = get_user_mode(message.from_user.id)
-    bot.reply_to(message, f"Текущий режим: {mode}")
-
-
-@bot.message_handler(commands=["reset"])
-def reset_command(message):
-    user_histories[message.from_user.id] = []
-    bot.reply_to(message, "Память текущего диалога очищена.")
-
-
-@bot.message_handler(commands=["remember"])
-def remember_command(message):
-    if not is_admin(message.from_user.id):
-        bot.reply_to(message, "У тебя нет доступа к изменению памяти.")
-        return
-
-    text = message.text.replace("/remember", "").strip()
-
-    if not text:
-        bot.reply_to(message, "Напиши так: /remember важная информация для памяти")
-        return
-
-    save_memory(text)
-    bot.reply_to(message, "Сохранил в память.")
-
-
-@bot.message_handler(commands=["sales"])
-def sales_command(message):
-    set_user_mode(message.from_user.id, "sales")
-    bot.reply_to(message, "Включен режим продаж.")
-
-
-@bot.message_handler(commands=["ops"])
-def ops_command(message):
-    set_user_mode(message.from_user.id, "ops")
-    bot.reply_to(message, "Включен операционный режим.")
-
-
-@bot.message_handler(commands=["hr"])
-def hr_command(message):
-    set_user_mode(message.from_user.id, "hr")
-    bot.reply_to(message, "Включен HR-режим.")
-
-
-@bot.message_handler(commands=["content"])
-def content_command(message):
-    set_user_mode(message.from_user.id, "content")
-    bot.reply_to(message, "Включен режим контента.")
-
-
-@bot.message_handler(commands=["finance"])
-def finance_command(message):
-    set_user_mode(message.from_user.id, "finance")
-    bot.reply_to(message, "Включен финансовый режим.")
-
-
-@bot.message_handler(commands=["producer"])
-def producer_command(message):
-    set_user_mode(message.from_user.id, "producer")
-    bot.reply_to(message, "Включен режим реализатора мероприятия.")
-
-
-@bot.message_handler(commands=["default"])
-def default_command(message):
-    set_user_mode(message.from_user.id, "default")
-    bot.reply_to(message, "Включен обычный режим.")
+    markup.add(*buttons)
+    return markup
 
 
 def get_event_checklist():
@@ -426,53 +333,240 @@ PRE-EVENT CHECK-LIST
 """
 
 
+@bot.message_handler(commands=["start", "help", "menu"])
+def start_command(message):
+    text = """
+Quattro Space AI Assistant
+
+Я помощник сотрудников Quattro Space в ежедневных задачах.
+
+Выбери, что нужно сделать:
+"""
+    bot.send_message(
+        message.chat.id,
+        text,
+        reply_markup=main_menu()
+    )
+
+
+@bot.message_handler(commands=["myid"])
+def myid_command(message):
+    bot.reply_to(message, f"Твой Telegram ID: {message.from_user.id}")
+
+
+@bot.message_handler(commands=["mode"])
+def mode_command(message):
+    mode = get_user_mode(message.from_user.id)
+    bot.reply_to(message, f"Текущий режим: {mode}")
+
+
+@bot.message_handler(commands=["reset"])
+def reset_command(message):
+    user_histories[message.from_user.id] = []
+    bot.reply_to(message, "Память текущего диалога очищена.")
+
+
+@bot.message_handler(commands=["remember"])
+def remember_command(message):
+    if not is_admin(message.from_user.id):
+        bot.reply_to(message, "У тебя нет доступа к изменению памяти.")
+        return
+
+    text = message.text.replace("/remember", "").strip()
+
+    if not text:
+        bot.reply_to(message, "Напиши так: /remember важная информация для памяти")
+        return
+
+    save_memory(text)
+    bot.reply_to(message, "Сохранил в память.")
+
+
 @bot.message_handler(commands=["eventcheck"])
 def eventcheck_command(message):
     bot.reply_to(message, get_event_checklist())
 
 
-@bot.message_handler(func=lambda message: message.text == "🎯 Продажи")
-def menu_sales(message):
-    set_user_mode(message.from_user.id, "sales")
-    bot.reply_to(message, "Включен режим продаж.")
+@bot.message_handler(func=lambda message: message.text == "⬅️ Главное меню")
+def menu_back(message):
+    bot.send_message(
+        message.chat.id,
+        "Главное меню:",
+        reply_markup=main_menu()
+    )
 
 
-@bot.message_handler(func=lambda message: message.text == "⚙️ Операционка")
-def menu_ops(message):
-    set_user_mode(message.from_user.id, "ops")
-    bot.reply_to(message, "Включен операционный режим.")
+@bot.message_handler(func=lambda message: message.text == "⚙️ Админ")
+def menu_admin(message):
+    bot.send_message(
+        message.chat.id,
+        "Админ-меню:",
+        reply_markup=admin_menu()
+    )
 
 
-@bot.message_handler(func=lambda message: message.text == "👥 HR")
-def menu_hr(message):
-    set_user_mode(message.from_user.id, "hr")
-    bot.reply_to(message, "Включен HR-режим.")
+@bot.message_handler(func=lambda message: message.text == "💬 Клиент / заявка")
+def menu_client(message):
+    set_user_mode(message.from_user.id, "client")
+    text = """
+Режим: клиент / заявка.
+
+Пришли заявку клиента или опиши ситуацию.
+
+Что можно попросить:
+— написать ответ клиенту
+— сделать дожим
+— обработать возражение
+— составить вопросы клиенту
+— предложить следующий шаг
+
+Лучше прислать:
+— формат мероприятия
+— количество гостей
+— дату
+— бюджет, если есть
+— пожелания клиента
+"""
+    bot.reply_to(message, text)
 
 
-@bot.message_handler(func=lambda message: message.text == "📢 Контент")
-def menu_content(message):
-    set_user_mode(message.from_user.id, "content")
-    bot.reply_to(message, "Включен режим контента.")
+@bot.message_handler(func=lambda message: message.text == "📍 Подобрать зал")
+def menu_hall(message):
+    set_user_mode(message.from_user.id, "hall")
+    text = """
+Режим: подбор зала.
+
+Пришли вводные:
+— количество гостей
+— формат мероприятия
+— банкет / фуршет / конференция
+— нужна ли сцена, экран, звук
+— важна ли приватность
+— дата, если есть
+
+Я предложу подходящий зал, альтернативу и следующий шаг для клиента.
+"""
+    bot.reply_to(message, text)
 
 
-@bot.message_handler(func=lambda message: message.text == "💰 Финансы")
-def menu_finance(message):
-    set_user_mode(message.from_user.id, "finance")
-    bot.reply_to(message, "Включен финансовый режим.")
+@bot.message_handler(func=lambda message: message.text == "📄 Сделать КП")
+def menu_proposal(message):
+    set_user_mode(message.from_user.id, "proposal")
+    text = """
+Режим: КП / предложение.
+
+Пришли вводные:
+— формат мероприятия
+— дата
+— количество гостей
+— выбранный зал или “подобрать”
+— еда / бар
+— техника
+— пожелания клиента
+
+Я подготовлю структуру КП или готовый текст сообщения клиенту.
+"""
+    bot.reply_to(message, text)
 
 
 @bot.message_handler(func=lambda message: message.text == "🎬 Реализация")
 def menu_producer(message):
     set_user_mode(message.from_user.id, "producer")
-    bot.reply_to(message, "Включен режим реализатора мероприятия.")
+    text = """
+Режим: реализация мероприятия.
+
+Что можно сделать:
+— чек-лист мероприятия
+— тайминг
+— список вопросов клиенту
+— задачи подрядчикам
+— риски мероприятия
+— контроль перед стартом
+
+Пришли вводные:
+— дата
+— зал
+— формат
+— количество гостей
+— тайминг
+— пожелания клиента
+— подрядчики
+"""
+    bot.reply_to(message, text)
 
 
-@bot.message_handler(func=lambda message: message.text == "📋 Event Check")
-def menu_eventcheck(message):
-    bot.reply_to(message, get_event_checklist())
+@bot.message_handler(func=lambda message: message.text == "✅ Задачи на день")
+def menu_tasks(message):
+    set_user_mode(message.from_user.id, "tasks")
+    text = """
+Режим: задачи на день.
+
+Напиши роль и ситуацию.
+
+Примеры:
+— менеджер продаж, мало заявок
+— реализатор, мероприятие через 3 дня
+— операционный сотрудник, нужно проверить площадку
+— руководитель, нужно проконтролировать команду
+
+Я составлю конкретный план задач.
+"""
+    bot.reply_to(message, text)
 
 
-@bot.message_handler(func=lambda message: message.text == "🧠 Очистить диалог")
+@bot.message_handler(func=lambda message: message.text == "📚 База знаний")
+def menu_knowledge(message):
+    set_user_mode(message.from_user.id, "knowledge")
+    text = """
+Режим: база знаний Quattro Space.
+
+Что можно спросить:
+— какие есть залы
+— вместимость залов
+— какой зал выбрать
+— форматы мероприятий
+— частые вопросы клиентов
+— правила работы
+— регламенты
+
+Напиши, что нужно найти или объяснить.
+"""
+    bot.reply_to(message, text)
+
+
+@bot.message_handler(func=lambda message: message.text == "👥 Команда / сотрудники")
+def menu_team(message):
+    set_user_mode(message.from_user.id, "team")
+    text = """
+Режим: команда / сотрудники.
+
+Что можно сделать:
+— разобрать сообщение сотрудника
+— подготовить обратную связь
+— поставить задачу
+— составить KPI
+— разобрать конфликт
+— написать регламент
+
+Пришли ситуацию или текст сообщения.
+"""
+    bot.reply_to(message, text)
+
+
+@bot.message_handler(func=lambda message: message.text == "🧠 Добавить в память")
+def menu_memory(message):
+    text = """
+Чтобы добавить информацию в память, напиши:
+
+/remember текст, который нужно запомнить
+
+Например:
+/remember У Компаса отдельный вход и он лучше подходит для закрытых встреч на 40–60 человек.
+"""
+    bot.reply_to(message, text)
+
+
+@bot.message_handler(func=lambda message: message.text == "🧹 Очистить диалог")
 def menu_reset(message):
     user_histories[message.from_user.id] = []
     bot.reply_to(message, "Память текущего диалога очищена.")
