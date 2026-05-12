@@ -37,6 +37,6 @@ app = ApplicationBuilder().token(TOKEN).build()
 app.add_handler(CommandHandler("start", start))
 app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-print("Bot started...")
+logger.info("Bot started")
 
-app.logger.info("Bot started")run_polling()
+app.run_polling()
