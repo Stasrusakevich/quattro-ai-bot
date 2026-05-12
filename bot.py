@@ -11,6 +11,7 @@ from dotenv import load_dotenv
 import os
 
 from services.ai import generate_ai_response
+from services.logger import logger
 
 load_dotenv()
 
@@ -39,4 +40,3 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 print("Bot started...")
 
 app.logger.info("Bot started")run_polling()
-from services.logger import logger
