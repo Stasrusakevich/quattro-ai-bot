@@ -1,23 +1,41 @@
-from handlers.start import start_command
-from handlers.help import help_command
-from handlers.messages import handle_message
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    CommandHandler,
+    MessageHandler,
+    ContextTypes,
+    filters,
+)
+
+from dotenv import load_dotenv
+import os
+
 from services.ai import generate_ai_response
-from services.memory import save_message, get_memory
-from database.db import connect_db
+
+load_dotenv()
+
+TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 
 
-def main():
-    print(start_command())
-    print(help_command())
-    print(connect_db())
-
-    user_message = "Привет, хочу узнать про площадку"
-    save_message(user_message)
-
-    response = generate_ai_response(user_message)
-    print(handle_message(response))
-    print("Memory:", get_memory())
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Quattro AI Assistant запущен."
+    )
 
 
-if __name__ == "__main__":
-    main()
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
+
+    ai_response = generate_ai_response(user_text)
+
+    await update.message.reply_text(ai_response)
+
+
+app = ApplicationBuilder().token(TOKEN).build()
+
+app.add_handler(CommandHandler("start", start))
+app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+print("Bot started...")
+
+app.run_polling()
