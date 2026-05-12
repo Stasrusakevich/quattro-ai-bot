@@ -38,5 +38,5 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
 print("Bot started...")
 
-app.run_polling()
+app.logger.info("Bot started")run_polling()
 from services.logger import logger
