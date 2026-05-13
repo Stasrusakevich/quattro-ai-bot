@@ -18,6 +18,10 @@ from services.memory import (
     get_conversation,
     clear_conversation,
 )
+from services.user_settings import (
+    set_user_mode,
+    get_user_mode,
+)
 
 
 load_dotenv()
@@ -30,7 +34,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "Quattro AI Assistant запущен.\n\n"
-        "Напиши сообщение — я отвечу с учетом контекста диалога."
+        "Режимы:\n"
+        "/assistant — общий ассистент\n"
+        "/sales — помощник продаж\n"
+        "/manager — помощник менеджера\n\n"
+        "Напиши сообщение — я отвечу с учетом выбранного режима."
     )
 
 
@@ -45,18 +53,22 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status — статус системы\n"
         "/memory — показать последние сообщения\n"
         "/clear — очистить память\n\n"
-        "Также можно просто написать сообщение."
+        "/assistant — общий режим\n"
+        "/sales — режим продаж\n"
+        "/manager — режим менеджера"
     )
 
 
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     logger.info("PING COMMAND RECEIVED")
-
     await update.message.reply_text("pong")
 
 
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("STATUS COMMAND RECEIVED")
+    user_id = update.effective_user.id
+    mode = get_user_mode(user_id)
+
+    logger.info(f"STATUS COMMAND RECEIVED FROM USER {user_id}")
 
     await update.message.reply_text(
         "Quattro AI Status\n\n"
@@ -64,7 +76,44 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ Telegram: connected\n"
         "✅ AI: connected\n"
         "✅ Memory: active\n"
-        "✅ SQLite: connected"
+        "✅ SQLite: connected\n"
+        f"✅ Current mode: {mode}"
+    )
+
+
+async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    set_user_mode(user_id, "assistant")
+
+    logger.info(f"USER {user_id} MODE SET TO assistant")
+
+    await update.message.reply_text(
+        "Включен общий режим Quattro AI Assistant."
+    )
+
+
+async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    set_user_mode(user_id, "sales")
+
+    logger.info(f"USER {user_id} MODE SET TO sales")
+
+    await update.message.reply_text(
+        "Включен режим продаж. Буду помогать с клиентами, заявками и доведением до следующего шага."
+    )
+
+
+async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    set_user_mode(user_id, "manager")
+
+    logger.info(f"USER {user_id} MODE SET TO manager")
+
+    await update.message.reply_text(
+        "Включен режим менеджера. Буду помогать с задачами, чек-листами и операционкой."
     )
 
 
@@ -102,11 +151,12 @@ async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_text = update.message.text
     user_id = update.effective_user.id
+    mode = get_user_mode(user_id)
 
     if not user_text:
         return
 
-    logger.info(f"USER {user_id}: {user_text}")
+    logger.info(f"USER {user_id} MODE {mode}: {user_text}")
 
     try:
         save_message(user_id, "user", user_text)
@@ -144,6 +194,10 @@ def main():
     app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("memory", memory))
     app.add_handler(CommandHandler("clear", clear))
+
+    app.add_handler(CommandHandler("assistant", assistant_mode))
+    app.add_handler(CommandHandler("sales", sales_mode))
+    app.add_handler(CommandHandler("manager", manager_mode))
 
     app.add_handler(
         MessageHandler(
