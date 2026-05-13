@@ -1,22 +1,33 @@
 from groq import Groq
 
 from config import GROQ_API_KEY
-
 from services.memory import get_conversation
 from services.prompts import load_prompt
+from services.user_settings import get_user_mode
+
 
 client = Groq(api_key=GROQ_API_KEY)
 
-SYSTEM_PROMPT = load_prompt("system_prompt.txt")
+
+def get_prompt_by_mode(mode):
+    if mode == "sales":
+        return load_prompt("sales_prompt.txt")
+
+    if mode == "manager":
+        return load_prompt("manager_prompt.txt")
+
+    return load_prompt("system_prompt.txt")
 
 
 def generate_ai_response(user_id, text):
+    mode = get_user_mode(user_id)
+    system_prompt = get_prompt_by_mode(mode)
     conversation = get_conversation(user_id)
 
     messages = [
         {
             "role": "system",
-            "content": SYSTEM_PROMPT
+            "content": system_prompt
         }
     ]
 
