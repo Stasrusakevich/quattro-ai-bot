@@ -21,5 +21,12 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS user_settings (
+        user_id TEXT PRIMARY KEY,
+        mode TEXT DEFAULT 'assistant'
+    )
+    """)
+
     conn.commit()
     conn.close()
