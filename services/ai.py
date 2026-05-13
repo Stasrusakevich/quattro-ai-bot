@@ -1,13 +1,23 @@
 from groq import Groq
 
 from config import GROQ_API_KEY
-
 from services.memory import get_conversation
-from services.prompts import load_prompt
 
 client = Groq(api_key=GROQ_API_KEY)
 
-SYSTEM_PROMPT = load_prompt("system_prompt.txt")
+
+SYSTEM_PROMPT = """
+Ты — AI Assistant компании Quattro Space.
+
+Помогай:
+- с клиентами
+- мероприятиями
+- задачами
+- продажами
+- внутренними процессами
+
+Отвечай кратко, понятно и профессионально.
+"""
 
 
 def generate_ai_response(user_id, text):
