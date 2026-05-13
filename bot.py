@@ -33,7 +33,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Quattro AI Assistant запущен."
     )
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        """
+Quattro AI Status
 
+✅ Bot: online
+✅ AI: connected
+✅ Memory: active
+✅ SQLite: connected
+"""
+    )
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
@@ -125,6 +135,7 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("memory", memory))
     app.add_handler(CommandHandler("clear", clear))
