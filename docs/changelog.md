@@ -33,3 +33,9 @@
 - Connected knowledge base to AI responses
 - Added services/knowledge.py
 - AI now uses Quattro Space knowledge files
+  ## v0.7
+
+- Added /whoami command
+- Added ADMIN_USER_ID support
+- Protected admin commands
+- Restricted /status, /memory and /clear to admin user
