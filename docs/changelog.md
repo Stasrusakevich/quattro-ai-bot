@@ -20,3 +20,11 @@
 - Added /assistant mode
 - Added user_settings table
 - Added mode-based prompt selection
+  ## v0.5
+
+- Added knowledge base structure
+- Added Quattro Space basic company info
+- Added services knowledge
+- Added events knowledge
+- Added FAQ knowledge
+- Added AI answer rules
