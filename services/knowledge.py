@@ -21,6 +21,8 @@ def load_all_knowledge():
         "events.md",
         "faq.md",
         "rules.md",
+        "sales_scripts.md",
+"objections.md",
     ]
 
     content = []
