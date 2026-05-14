@@ -28,3 +28,8 @@
 - Added events knowledge
 - Added FAQ knowledge
 - Added AI answer rules
+## v0.6
+
+- Connected knowledge base to AI responses
+- Added services/knowledge.py
+- AI now uses Quattro Space knowledge files
