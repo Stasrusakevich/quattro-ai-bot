@@ -12,3 +12,11 @@
 - Added admin commands
 - Added prompt system
 - Added /status command
+## v0.4
+
+- Added user modes
+- Added /sales mode
+- Added /manager mode
+- Added /assistant mode
+- Added user_settings table
+- Added mode-based prompt selection
