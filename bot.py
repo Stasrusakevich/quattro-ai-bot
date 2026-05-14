@@ -1,6 +1,3 @@
-import os
-
-from dotenv import load_dotenv
 from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
@@ -10,6 +7,7 @@ from telegram.ext import (
     filters,
 )
 
+from config import TELEGRAM_BOT_TOKEN, ADMIN_USER_ID
 from database.db import init_db
 from services.ai import generate_ai_response
 from services.logger import logger
@@ -24,9 +22,11 @@ from services.user_settings import (
 )
 
 
-load_dotenv()
+def is_admin(user_id):
+    if not ADMIN_USER_ID:
+        return False
 
-TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
+    return str(user_id) == str(ADMIN_USER_ID)
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -50,12 +50,15 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/start — запустить бота\n"
         "/help — помощь\n"
         "/ping — проверка связи\n"
-        "/status — статус системы\n"
-        "/memory — показать последние сообщения\n"
-        "/clear — очистить память\n\n"
+        "/whoami — показать твой Telegram user_id\n\n"
+        "Режимы:\n"
         "/assistant — общий режим\n"
         "/sales — режим продаж\n"
-        "/manager — режим менеджера"
+        "/manager — режим менеджера\n\n"
+        "Админ-команды:\n"
+        "/status — статус системы\n"
+        "/memory — показать последние сообщения\n"
+        "/clear — очистить память"
     )
 
 
@@ -64,11 +67,28 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("pong")
 
 
+async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    logger.info(f"WHOAMI COMMAND RECEIVED FROM USER {user.id}")
+
+    await update.message.reply_text(
+        f"Telegram user_id: {user.id}\n"
+        f"Username: @{user.username}\n"
+        f"First name: {user.first_name}"
+    )
+
+
 async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
+
     mode = get_user_mode(user_id)
 
-    logger.info(f"STATUS COMMAND RECEIVED FROM USER {user_id}")
+    logger.info(f"STATUS COMMAND RECEIVED FROM ADMIN {user_id}")
 
     await update.message.reply_text(
         "Quattro AI Status\n\n"
@@ -83,34 +103,23 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     set_user_mode(user_id, "assistant")
 
-    logger.info(f"USER {user_id} MODE SET TO assistant")
-
-    await update.message.reply_text(
-        "Включен общий режим Quattro AI Assistant."
-    )
+    await update.message.reply_text("Включен общий режим Quattro AI Assistant.")
 
 
 async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     set_user_mode(user_id, "sales")
 
-    logger.info(f"USER {user_id} MODE SET TO sales")
-
     await update.message.reply_text(
-        "Включен режим продаж. Буду помогать с клиентами, заявками и доведением до следующего шага."
+        "Включен режим продаж. Буду помогать с клиентами, заявками и следующим шагом."
     )
 
 
 async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-
     set_user_mode(user_id, "manager")
-
-    logger.info(f"USER {user_id} MODE SET TO manager")
 
     await update.message.reply_text(
         "Включен режим менеджера. Буду помогать с задачами, чек-листами и операционкой."
@@ -120,7 +129,9 @@ async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    logger.info(f"MEMORY COMMAND RECEIVED FROM USER {user_id}")
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
 
     conversation = get_conversation(user_id)
 
@@ -141,7 +152,9 @@ async def memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
-    logger.info(f"CLEAR COMMAND RECEIVED FROM USER {user_id}")
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
 
     clear_conversation(user_id)
 
@@ -168,8 +181,6 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         save_message(user_id, "assistant", ai_response)
 
-        logger.info(f"AI RESPONSE TO USER {user_id}: {ai_response}")
-
         await update.message.reply_text(ai_response)
 
     except Exception as error:
@@ -181,16 +192,18 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 def main():
-    if not TOKEN:
+    if not TELEGRAM_BOT_TOKEN:
         raise ValueError("TELEGRAM_BOT_TOKEN not found")
 
     init_db()
 
-    app = ApplicationBuilder().token(TOKEN).build()
+    app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
     app.add_handler(CommandHandler("ping", ping))
+    app.add_handler(CommandHandler("whoami", whoami))
+
     app.add_handler(CommandHandler("status", status))
     app.add_handler(CommandHandler("memory", memory))
     app.add_handler(CommandHandler("clear", clear))
