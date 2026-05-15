@@ -24,6 +24,9 @@ def load_all_knowledge():
         "sales_scripts.md",
 "objections.md",
         "client_replies.md",
+        "event_checklists.md",
+"manager_tasks.md",
+"event_roles.md",
     ]
 
     content = []
