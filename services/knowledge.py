@@ -27,6 +27,7 @@ def load_all_knowledge():
         "event_checklists.md",
 "manager_tasks.md",
 "event_roles.md",
+        "internal_rules.md",
     ]
 
     content = []
