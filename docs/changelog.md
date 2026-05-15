@@ -43,3 +43,10 @@
 
 - Added client reply templates
 - Connected sales reply knowledge to AI
+## v0.9
+
+- Added event checklists
+- Added manager task knowledge
+- Added event team roles
+- Added internal company rules
+- Expanded operational knowledge base
