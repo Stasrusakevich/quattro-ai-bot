@@ -99,7 +99,13 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ SQLite: connected\n"
         f"✅ Current mode: {mode}"
     )
-
+async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Режимы Quattro AI:\n\n"
+        "/assistant — общий AI помощник\n"
+        "/sales — AI помощник продаж\n"
+        "/manager — AI помощник менеджера"
+    )
 
 async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
@@ -205,6 +211,7 @@ def main():
     app.add_handler(CommandHandler("whoami", whoami))
 
     app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("modes", modes))
     app.add_handler(CommandHandler("memory", memory))
     app.add_handler(CommandHandler("clear", clear))
 
