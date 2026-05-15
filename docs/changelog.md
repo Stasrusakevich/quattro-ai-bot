@@ -39,3 +39,7 @@
 - Added ADMIN_USER_ID support
 - Protected admin commands
 - Restricted /status, /memory and /clear to admin user
+## v0.8
+
+- Added client reply templates
+- Connected sales reply knowledge to AI
