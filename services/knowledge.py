@@ -28,6 +28,8 @@ def load_all_knowledge():
 "manager_tasks.md",
 "event_roles.md",
         "internal_rules.md",
+        "client_types.md",
+"venue_features.md",
     ]
 
     content = []
