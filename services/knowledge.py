@@ -23,6 +23,7 @@ def load_all_knowledge():
         "rules.md",
         "sales_scripts.md",
 "objections.md",
+        "client_replies.md",
     ]
 
     content = []
