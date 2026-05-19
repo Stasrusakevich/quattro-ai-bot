@@ -30,6 +30,8 @@ def load_all_knowledge():
         "internal_rules.md",
         "client_types.md",
 "venue_features.md",
+        "task_templates.md",
+"followups.md",
     ]
 
     content = []
