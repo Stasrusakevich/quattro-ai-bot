@@ -30,36 +30,44 @@ def is_admin(user_id):
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("START COMMAND RECEIVED")
-
     await update.message.reply_text(
         "Quattro AI Assistant запущен.\n\n"
         "Режимы:\n"
         "/assistant — общий ассистент\n"
         "/sales — помощник продаж\n"
-        "/manager — помощник менеджера\n\n"
+        "/manager — помощник менеджера\n"
+        "/operations — operations assistant\n\n"
         "Напиши сообщение — я отвечу с учетом выбранного режима."
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    logger.info("HELP COMMAND RECEIVED")
-
     await update.message.reply_text(
-        "Команды:\n\n"
-        "/start — запустить бота\n"
+        "Команды Quattro AI:\n\n"
+        "/start — запуск\n"
         "/help — помощь\n"
+        "/modes — режимы AI\n"
         "/ping — проверка связи\n"
-        "/whoami — показать твой Telegram user_id\n\n"
+        "/whoami — показать Telegram ID\n\n"
         "Режимы:\n"
-        "/assistant — общий режим\n"
-        "/sales — режим продаж\n"
-        "/manager — режим менеджера\n\n"
-        "Админ-команды:\n"
-        "/status — статус системы\n"
-        "/memory — показать последние сообщения\n"
-        "/clear — очистить память"
-        "/operations — operations assistant\n"
+        "/assistant\n"
+        "/sales\n"
+        "/manager\n"
+        "/operations\n\n"
+        "Admin:\n"
+        "/status\n"
+        "/memory\n"
+        "/clear"
+    )
+
+
+async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Режимы Quattro AI:\n\n"
+        "/assistant — общий AI помощник\n"
+        "/sales — AI помощник продаж\n"
+        "/manager — AI помощник менеджера\n"
+        "/operations — AI помощник по мероприятиям и операционке"
     )
 
 
@@ -70,8 +78,6 @@ async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-
-    logger.info(f"WHOAMI COMMAND RECEIVED FROM USER {user.id}")
 
     await update.message.reply_text(
         f"Telegram user_id: {user.id}\n"
@@ -89,8 +95,6 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     mode = get_user_mode(user_id)
 
-    logger.info(f"STATUS COMMAND RECEIVED FROM ADMIN {user_id}")
-
     await update.message.reply_text(
         "Quattro AI Status\n\n"
         "✅ Bot: online\n"
@@ -100,20 +104,15 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ SQLite: connected\n"
         f"✅ Current mode: {mode}"
     )
-async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(
-        "Режимы Quattro AI:\n\n"
-        "/assistant — общий AI помощник\n"
-        "/sales — AI помощник продаж\n"
-        "/manager — AI помощник менеджера\n"
-        "/operations — operations assistant"
-    )
+
 
 async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     set_user_mode(user_id, "assistant")
 
-    await update.message.reply_text("Включен общий режим Quattro AI Assistant.")
+    await update.message.reply_text(
+        "Включен общий режим Quattro AI Assistant."
+    )
 
 
 async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -131,6 +130,15 @@ async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "Включен режим менеджера. Буду помогать с задачами, чек-листами и операционкой."
+    )
+
+
+async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+    set_user_mode(user_id, "operations")
+
+    await update.message.reply_text(
+        "Включен operations режим. Буду помогать с мероприятиями, командой и операционкой."
     )
 
 
@@ -197,14 +205,7 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Ошибка AI Assistant. Проверь логи Railway."
         )
-async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
 
-    set_user_mode(user_id, "operations")
-
-    await update.message.reply_text(
-        "Включен operations режим. Буду помогать с мероприятиями, командой и операционкой."
-    )
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
@@ -216,18 +217,19 @@ def main():
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("modes", modes))
     app.add_handler(CommandHandler("ping", ping))
     app.add_handler(CommandHandler("whoami", whoami))
-
-    app.add_handler(CommandHandler("status", status))
-    app.add_handler(CommandHandler("modes", modes))
-    app.add_handler(CommandHandler("memory", memory))
-    app.add_handler(CommandHandler("clear", clear))
 
     app.add_handler(CommandHandler("assistant", assistant_mode))
     app.add_handler(CommandHandler("sales", sales_mode))
     app.add_handler(CommandHandler("manager", manager_mode))
-app.add_handler(CommandHandler("operations", operations_mode))
+    app.add_handler(CommandHandler("operations", operations_mode))
+
+    app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("memory", memory))
+    app.add_handler(CommandHandler("clear", clear))
+
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
