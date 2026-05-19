@@ -50,3 +50,10 @@
 - Added event team roles
 - Added internal company rules
 - Expanded operational knowledge base
+  ## v1.1
+
+- Added operations mode
+- Added operations prompt
+- Fixed services/ai.py indentation error
+- Connected operations mode to bot commands
+- Tested /operations successfully
