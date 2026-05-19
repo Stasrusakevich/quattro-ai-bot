@@ -59,6 +59,7 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/status — статус системы\n"
         "/memory — показать последние сообщения\n"
         "/clear — очистить память"
+        "/operations — operations assistant\n"
     )
 
 
@@ -104,7 +105,8 @@ async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Режимы Quattro AI:\n\n"
         "/assistant — общий AI помощник\n"
         "/sales — AI помощник продаж\n"
-        "/manager — AI помощник менеджера"
+        "/manager — AI помощник менеджера\n"
+        "/operations — operations assistant"
     )
 
 async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
