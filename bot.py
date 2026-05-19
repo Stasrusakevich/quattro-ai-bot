@@ -195,7 +195,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Ошибка AI Assistant. Проверь логи Railway."
         )
+async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
 
+    set_user_mode(user_id, "operations")
+
+    await update.message.reply_text(
+        "Включен operations режим. Буду помогать с мероприятиями, командой и операционкой."
+    )
 
 def main():
     if not TELEGRAM_BOT_TOKEN:
@@ -218,7 +225,7 @@ def main():
     app.add_handler(CommandHandler("assistant", assistant_mode))
     app.add_handler(CommandHandler("sales", sales_mode))
     app.add_handler(CommandHandler("manager", manager_mode))
-
+app.add_handler(CommandHandler("operations", operations_mode))
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
