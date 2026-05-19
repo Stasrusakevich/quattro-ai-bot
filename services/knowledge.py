@@ -32,6 +32,8 @@ def load_all_knowledge():
 "venue_features.md",
         "task_templates.md",
 "followups.md",
+        "brief_template.md",
+"lead_qualification.md",
     ]
 
     content = []
