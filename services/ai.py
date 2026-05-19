@@ -16,6 +16,8 @@ def get_prompt_by_mode(mode):
 
     if mode == "manager":
         return load_prompt("manager_prompt.txt")
+        if mode == "operations":
+    return load_prompt("operations_prompt.txt")
 
     return load_prompt("system_prompt.txt")
 
