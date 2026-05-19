@@ -16,16 +16,20 @@ def get_prompt_by_mode(mode):
 
     if mode == "manager":
         return load_prompt("manager_prompt.txt")
-        if mode == "operations":
-    return load_prompt("operations_prompt.txt")
+
+    if mode == "operations":
+        return load_prompt("operations_prompt.txt")
 
     return load_prompt("system_prompt.txt")
 
 
 def generate_ai_response(user_id, text):
     mode = get_user_mode(user_id)
+
     system_prompt = get_prompt_by_mode(mode)
+
     knowledge = load_all_knowledge()
+
     conversation = get_conversation(user_id)
 
     messages = [
