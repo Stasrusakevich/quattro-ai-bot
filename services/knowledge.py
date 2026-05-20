@@ -34,6 +34,7 @@ def load_all_knowledge():
 "followups.md",
         "brief_template.md",
 "lead_qualification.md",
+        "sales_real_data.md",
     ]
 
     content = []
