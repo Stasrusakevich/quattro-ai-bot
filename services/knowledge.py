@@ -25,6 +25,17 @@ def load_all_knowledge():
         "objections.md",
         "client_replies.md",
         "sales_real_data.md",
+        "event_checklists.md",
+        "manager_tasks.md",
+        "event_roles.md",
+        "internal_rules.md",
+        "client_types.md",
+        "venue_features.md",
+        "task_templates.md",
+        "followups.md",
+        "brief_template.md",
+        "lead_qualification.md",
+        "checklist_templates.md",
     ]
 
     content = []
@@ -33,6 +44,15 @@ def load_all_knowledge():
         text = load_knowledge_file(filename)
 
         if text:
-            content.append(text)
+            content.append(f"\n\n# FILE: {filename}\n\n{text}")
 
     return "\n\n".join(content)
+
+
+def get_loaded_knowledge_files():
+    files = os.listdir(KNOWLEDGE_DIR)
+
+    return [
+        file for file in files
+        if file.endswith(".md")
+    ]
