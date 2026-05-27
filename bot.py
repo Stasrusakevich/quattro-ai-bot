@@ -18,7 +18,6 @@ from services.knowledge import get_loaded_knowledge_files
 
 from feedback import (
     feedback_start,
-    feedback_manager_name,
     feedback_client_name,
     feedback_event_date,
     feedback_event_format,
@@ -28,7 +27,6 @@ from feedback import (
     feedback_next_step,
     feedback_comment,
     feedback_cancel,
-    MANAGER_NAME,
     CLIENT_NAME,
     EVENT_DATE,
     EVENT_FORMAT,
@@ -48,18 +46,176 @@ def is_admin(user_id):
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Quattro AI Assistant запущен."
+        "Quattro AI Assistant запущен.\n\n"
+        "/modes — режимы\n"
+        "/sales — режим продаж\n"
+        "/feedback — обратная связь после просмотра\n"
+        "/feedback_export — экспорт feedback"
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "/feedback — заполнить feedback\n"
-        "/feedback_export — экспорт feedback\n"
+        "Команды Quattro AI:\n\n"
+        "/start\n"
+        "/help\n"
+        "/modes\n"
+        "/ping\n"
+        "/whoami\n"
+        "/knowledge\n\n"
+        "Режимы:\n"
+        "/assistant\n"
         "/sales\n"
         "/manager\n"
-        "/operations"
+        "/operations\n\n"
+        "Инструменты:\n"
+        "/brief\n"
+        "/followup\n"
+        "/checklist\n"
+        "/feedback\n"
+        "/cancel\n\n"
+        "Admin:\n"
+        "/status\n"
+        "/memory\n"
+        "/clear\n"
+        "/feedback_export"
     )
+
+
+async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "/assistant — общий помощник\n"
+        "/sales — продажи\n"
+        "/manager — менеджер\n"
+        "/operations — операционка"
+    )
+
+
+async def knowledge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    files = get_loaded_knowledge_files()
+
+    if not files:
+        await update.message.reply_text("Файлы knowledge не найдены.")
+        return
+
+    text = "Загруженные knowledge-файлы:\n\n" + "\n".join(files)
+    await update.message.reply_text(text[:4000])
+
+
+async def brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Для брифа мероприятия напишите:\n\n"
+        "- формат мероприятия\n"
+        "- количество гостей\n"
+        "- дата\n"
+        "- бюджет\n"
+        "- нужен ли кейтеринг\n"
+        "- нужна ли техника\n"
+        "- особые пожелания"
+    )
+
+
+async def followup(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Для follow-up напишите:\n\n"
+        "- какой был контакт\n"
+        "- что обсуждали\n"
+        "- что обещали клиенту\n"
+        "- следующий шаг"
+    )
+
+
+async def checklist(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(
+        "Для checklist напишите:\n\n"
+        "- формат мероприятия\n"
+        "- количество гостей\n"
+        "- дата\n"
+        "- ключевые задачи\n\n"
+        "Я подготовлю список проверки."
+    )
+
+
+async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("pong")
+
+
+async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    await update.message.reply_text(
+        f"Telegram user_id: {user.id}\n"
+        f"Username: @{user.username}\n"
+        f"First name: {user.first_name}"
+    )
+
+
+async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
+
+    await update.message.reply_text(
+        "Quattro AI Status\n\n"
+        "✅ Bot: online\n"
+        "✅ AI: connected\n"
+        "✅ Memory: active\n"
+        "✅ SQLite: connected\n"
+        f"✅ Current mode: {get_user_mode(user_id)}"
+    )
+
+
+async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    set_user_mode(update.effective_user.id, "assistant")
+    await update.message.reply_text("Включен общий режим.")
+
+
+async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    set_user_mode(update.effective_user.id, "sales")
+    await update.message.reply_text("Включен режим продаж.")
+
+
+async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    set_user_mode(update.effective_user.id, "manager")
+    await update.message.reply_text("Включен режим менеджера.")
+
+
+async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    set_user_mode(update.effective_user.id, "operations")
+    await update.message.reply_text("Включен operations режим.")
+
+
+async def memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
+
+    conversation = get_conversation(user_id)
+
+    if not conversation:
+        await update.message.reply_text("Память пустая.")
+        return
+
+    text = "\n\n".join(
+        [f"{message['role']}: {message['content']}" for message in conversation]
+    )
+
+    await update.message.reply_text(text[:4000])
+
+
+async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
+
+    clear_conversation(user_id)
+    await update.message.reply_text("Память очищена.")
 
 
 async def feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,10 +227,11 @@ async def feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     file_path = export_feedback_to_xlsx()
 
-    await update.message.reply_document(
-        document=open(file_path, "rb"),
-        filename="feedback_export.xlsx"
-    )
+    with open(file_path, "rb") as file:
+        await update.message.reply_document(
+            document=file,
+            filename="feedback_export.xlsx"
+        )
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -100,11 +257,14 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
         logger.error(f"AI ERROR FOR USER {user_id}: {error}")
 
         await update.message.reply_text(
-            "Ошибка AI Assistant."
+            "Ошибка AI Assistant. Проверь логи Railway."
         )
 
 
 def main():
+    if not TELEGRAM_BOT_TOKEN:
+        raise ValueError("TELEGRAM_BOT_TOKEN not found")
+
     init_db()
 
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
@@ -112,12 +272,6 @@ def main():
     feedback_handler = ConversationHandler(
         entry_points=[CommandHandler("feedback", feedback_start)],
         states={
-            MANAGER_NAME: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_manager_name
-                )
-            ],
             CLIENT_NAME: [
                 MessageHandler(
                     filters.TEXT & ~filters.COMMAND,
@@ -170,11 +324,28 @@ def main():
         fallbacks=[CommandHandler("cancel", feedback_cancel)],
     )
 
+    app.add_handler(feedback_handler)
+
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
+    app.add_handler(CommandHandler("modes", modes))
+    app.add_handler(CommandHandler("knowledge", knowledge))
+    app.add_handler(CommandHandler("ping", ping))
+    app.add_handler(CommandHandler("whoami", whoami))
+
+    app.add_handler(CommandHandler("brief", brief))
+    app.add_handler(CommandHandler("followup", followup))
+    app.add_handler(CommandHandler("checklist", checklist))
     app.add_handler(CommandHandler("feedback_export", feedback_export))
 
-    app.add_handler(feedback_handler)
+    app.add_handler(CommandHandler("assistant", assistant_mode))
+    app.add_handler(CommandHandler("sales", sales_mode))
+    app.add_handler(CommandHandler("manager", manager_mode))
+    app.add_handler(CommandHandler("operations", operations_mode))
+
+    app.add_handler(CommandHandler("status", status))
+    app.add_handler(CommandHandler("memory", memory))
+    app.add_handler(CommandHandler("clear", clear))
 
     app.add_handler(
         MessageHandler(
