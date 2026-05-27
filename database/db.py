@@ -28,5 +28,22 @@ def init_db():
     )
     """)
 
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS feedback (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id TEXT,
+        manager_name TEXT,
+        client_name TEXT,
+        event_date TEXT,
+        event_format TEXT,
+        guests_count TEXT,
+        client_reaction TEXT,
+        objections TEXT,
+        next_step TEXT,
+        comment TEXT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )
+    """)
+
     conn.commit()
     conn.close()
