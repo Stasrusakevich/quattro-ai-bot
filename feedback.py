@@ -4,34 +4,28 @@ from telegram.ext import ContextTypes, ConversationHandler
 from database.db import connect_db
 
 
-MANAGER_NAME = 1
-CLIENT_NAME = 2
-EVENT_DATE = 3
-EVENT_FORMAT = 4
-GUESTS_COUNT = 5
-CLIENT_REACTION = 6
-OBJECTIONS = 7
-NEXT_STEP = 8
-COMMENT = 9
+CLIENT_NAME = 1
+EVENT_DATE = 2
+EVENT_FORMAT = 3
+GUESTS_COUNT = 4
+CLIENT_REACTION = 5
+OBJECTIONS = 6
+NEXT_STEP = 7
+COMMENT = 8
 
 
 async def feedback_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["feedback"] = {}
+    user = update.effective_user
+
+    context.user_data["feedback"] = {
+        "manager_id": str(user.id),
+        "manager_username": user.username or "",
+        "manager_first_name": user.first_name or "",
+    }
 
     await update.message.reply_text(
         "Начинаем обратную связь после просмотра площадки.\n\n"
-        "Вопрос 1/9:\n"
-        "Имя менеджера?"
-    )
-
-    return MANAGER_NAME
-
-
-async def feedback_manager_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["feedback"]["manager_name"] = update.message.text
-
-    await update.message.reply_text(
-        "Вопрос 2/9:\n"
+        "Вопрос 1/8:\n"
         "Имя клиента?"
     )
 
@@ -42,7 +36,7 @@ async def feedback_client_name(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["feedback"]["client_name"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 3/9:\n"
+        "Вопрос 2/8:\n"
         "Дата мероприятия?"
     )
 
@@ -53,7 +47,7 @@ async def feedback_event_date(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["feedback"]["event_date"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 4/9:\n"
+        "Вопрос 3/8:\n"
         "Формат мероприятия?"
     )
 
@@ -64,7 +58,7 @@ async def feedback_event_format(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["feedback"]["event_format"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 5/9:\n"
+        "Вопрос 4/8:\n"
         "Количество гостей?"
     )
 
@@ -75,7 +69,7 @@ async def feedback_guests_count(update: Update, context: ContextTypes.DEFAULT_TY
     context.user_data["feedback"]["guests_count"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 6/9:\n"
+        "Вопрос 5/8:\n"
         "Какая была реакция клиента после просмотра?"
     )
 
@@ -86,7 +80,7 @@ async def feedback_client_reaction(update: Update, context: ContextTypes.DEFAULT
     context.user_data["feedback"]["client_reaction"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 7/9:\n"
+        "Вопрос 6/8:\n"
         "Какие были возражения или сомнения?"
     )
 
@@ -97,7 +91,7 @@ async def feedback_objections(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["feedback"]["objections"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 8/9:\n"
+        "Вопрос 7/8:\n"
         "Какой следующий шаг?"
     )
 
@@ -108,7 +102,7 @@ async def feedback_next_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["feedback"]["next_step"] = update.message.text
 
     await update.message.reply_text(
-        "Вопрос 9/9:\n"
+        "Вопрос 8/8:\n"
         "Комментарий менеджера?"
     )
 
@@ -116,8 +110,6 @@ async def feedback_next_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_id = update.effective_user.id
-
     context.user_data["feedback"]["comment"] = update.message.text
 
     data = context.user_data["feedback"]
@@ -128,8 +120,9 @@ async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
     cursor.execute(
         """
         INSERT INTO feedback (
-            user_id,
-            manager_name,
+            manager_id,
+            manager_username,
+            manager_first_name,
             client_name,
             event_date,
             event_format,
@@ -139,11 +132,12 @@ async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             next_step,
             comment
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
-            str(user_id),
-            data.get("manager_name"),
+            data.get("manager_id"),
+            data.get("manager_username"),
+            data.get("manager_first_name"),
             data.get("client_name"),
             data.get("event_date"),
             data.get("event_format"),
