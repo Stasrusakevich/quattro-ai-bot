@@ -31,8 +31,9 @@ def init_db():
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS feedback (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id TEXT,
-        manager_name TEXT,
+        manager_id TEXT,
+        manager_username TEXT,
+        manager_first_name TEXT,
         client_name TEXT,
         event_date TEXT,
         event_format TEXT,
