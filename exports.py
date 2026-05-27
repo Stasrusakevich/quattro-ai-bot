@@ -1,10 +1,8 @@
-import csv
 from openpyxl import Workbook
 
 from database.db import connect_db
 
 
-CSV_FILE = "feedback_export.csv"
 XLSX_FILE = "feedback_export.xlsx"
 
 
@@ -16,8 +14,9 @@ def export_feedback_to_xlsx():
     SELECT
         id,
         created_at,
-        user_id,
-        manager_name,
+        manager_id,
+        manager_username,
+        manager_first_name,
         client_name,
         event_date,
         event_format,
@@ -31,7 +30,6 @@ def export_feedback_to_xlsx():
     """)
 
     rows = cursor.fetchall()
-
     conn.close()
 
     workbook = Workbook()
@@ -41,8 +39,9 @@ def export_feedback_to_xlsx():
     headers = [
         "ID",
         "Created At",
-        "User ID",
-        "Manager Name",
+        "Manager ID",
+        "Manager Username",
+        "Manager First Name",
         "Client Name",
         "Event Date",
         "Event Format",
