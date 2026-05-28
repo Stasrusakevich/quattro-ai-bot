@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 
 from database.db import connect_db
@@ -14,6 +14,22 @@ NEXT_STEP = 7
 COMMENT = 8
 
 
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        ["ОС после встречи", "ОС после мероприятия"],
+        ["Продажи", "Заметка"],
+    ],
+    resize_keyboard=True,
+)
+
+FEEDBACK_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        ["Отмена"],
+    ],
+    resize_keyboard=True,
+)
+
+
 async def feedback_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
 
@@ -25,8 +41,10 @@ async def feedback_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await update.message.reply_text(
         "Начинаем обратную связь после просмотра площадки.\n\n"
+        "Чтобы отменить заполнение, нажмите кнопку «Отмена».\n\n"
         "Вопрос 1/8:\n"
-        "Имя клиента?"
+        "Имя клиента?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return CLIENT_NAME
@@ -37,7 +55,8 @@ async def feedback_client_name(update: Update, context: ContextTypes.DEFAULT_TYP
 
     await update.message.reply_text(
         "Вопрос 2/8:\n"
-        "Дата мероприятия?"
+        "Дата мероприятия?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return EVENT_DATE
@@ -48,7 +67,8 @@ async def feedback_event_date(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.message.reply_text(
         "Вопрос 3/8:\n"
-        "Формат мероприятия?"
+        "Формат мероприятия?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return EVENT_FORMAT
@@ -59,7 +79,8 @@ async def feedback_event_format(update: Update, context: ContextTypes.DEFAULT_TY
 
     await update.message.reply_text(
         "Вопрос 4/8:\n"
-        "Количество гостей?"
+        "Количество гостей?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return GUESTS_COUNT
@@ -70,7 +91,8 @@ async def feedback_guests_count(update: Update, context: ContextTypes.DEFAULT_TY
 
     await update.message.reply_text(
         "Вопрос 5/8:\n"
-        "Какая была реакция клиента после просмотра?"
+        "Какая была реакция клиента после просмотра?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return CLIENT_REACTION
@@ -81,7 +103,8 @@ async def feedback_client_reaction(update: Update, context: ContextTypes.DEFAULT
 
     await update.message.reply_text(
         "Вопрос 6/8:\n"
-        "Какие были возражения или сомнения?"
+        "Какие были возражения или сомнения?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return OBJECTIONS
@@ -92,7 +115,8 @@ async def feedback_objections(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     await update.message.reply_text(
         "Вопрос 7/8:\n"
-        "Какой следующий шаг?"
+        "Какой следующий шаг?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return NEXT_STEP
@@ -103,7 +127,8 @@ async def feedback_next_step(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
     await update.message.reply_text(
         "Вопрос 8/8:\n"
-        "Комментарий менеджера?"
+        "Комментарий менеджера?",
+        reply_markup=FEEDBACK_KEYBOARD,
     )
 
     return COMMENT
@@ -146,7 +171,7 @@ async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
             data.get("objections"),
             data.get("next_step"),
             data.get("comment"),
-        )
+        ),
     )
 
     conn.commit()
@@ -154,7 +179,10 @@ async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data.pop("feedback", None)
 
-    await update.message.reply_text("Обратная связь сохранена.")
+    await update.message.reply_text(
+        "Обратная связь сохранена.",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
     return ConversationHandler.END
 
@@ -162,6 +190,9 @@ async def feedback_comment(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def feedback_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop("feedback", None)
 
-    await update.message.reply_text("Заполнение обратной связи отменено.")
+    await update.message.reply_text(
+        "Заполнение обратной связи отменено.",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
     return ConversationHandler.END
