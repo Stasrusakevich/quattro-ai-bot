@@ -3,7 +3,8 @@ from openpyxl import Workbook
 from database.db import connect_db
 
 
-XLSX_FILE = "feedback_export.xlsx"
+FEEDBACK_XLSX_FILE = "feedback_export.xlsx"
+EVENT_FEEDBACK_XLSX_FILE = "event_feedback_export.xlsx"
 
 
 def export_feedback_to_xlsx():
@@ -34,7 +35,7 @@ def export_feedback_to_xlsx():
 
     workbook = Workbook()
     sheet = workbook.active
-    sheet.title = "Feedback"
+    sheet.title = "Meeting Feedback"
 
     headers = [
         "ID",
@@ -57,6 +58,62 @@ def export_feedback_to_xlsx():
     for row in rows:
         sheet.append(row)
 
-    workbook.save(XLSX_FILE)
+    workbook.save(FEEDBACK_XLSX_FILE)
 
-    return XLSX_FILE
+    return FEEDBACK_XLSX_FILE
+
+
+def export_event_feedback_to_xlsx():
+    conn = connect_db()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+    SELECT
+        id,
+        created_at,
+        executor_id,
+        executor_username,
+        executor_first_name,
+        event_type,
+        fact_guests,
+        before_problems,
+        during_problems,
+        client_rating,
+        what_went_well,
+        what_to_improve,
+        comment
+    FROM event_feedback
+    ORDER BY id DESC
+    """)
+
+    rows = cursor.fetchall()
+    conn.close()
+
+    workbook = Workbook()
+    sheet = workbook.active
+    sheet.title = "Event Feedback"
+
+    headers = [
+        "ID",
+        "Created At",
+        "Executor ID",
+        "Executor Username",
+        "Executor First Name",
+        "Event Type",
+        "Fact Guests",
+        "Before Problems",
+        "During Problems",
+        "Client Rating",
+        "What Went Well",
+        "What To Improve",
+        "Comment",
+    ]
+
+    sheet.append(headers)
+
+    for row in rows:
+        sheet.append(row)
+
+    workbook.save(EVENT_FEEDBACK_XLSX_FILE)
+
+    return EVENT_FEEDBACK_XLSX_FILE
