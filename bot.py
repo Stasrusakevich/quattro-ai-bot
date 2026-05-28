@@ -38,7 +38,31 @@ from feedback import (
     COMMENT,
 )
 
-from exports import export_feedback_to_xlsx
+from event_feedback import (
+    event_feedback_start,
+    event_feedback_type,
+    event_feedback_fact_guests,
+    event_feedback_before_problems,
+    event_feedback_during_problems,
+    event_feedback_client_rating,
+    event_feedback_what_went_well,
+    event_feedback_what_to_improve,
+    event_feedback_comment,
+    event_feedback_cancel,
+    EVENT_TYPE,
+    FACT_GUESTS,
+    BEFORE_PROBLEMS,
+    DURING_PROBLEMS,
+    CLIENT_RATING,
+    WHAT_WENT_WELL,
+    WHAT_TO_IMPROVE,
+    EVENT_COMMENT,
+)
+
+from exports import (
+    export_feedback_to_xlsx,
+    export_event_feedback_to_xlsx,
+)
 
 
 MAIN_KEYBOARD = ReplyKeyboardMarkup(
@@ -65,15 +89,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Доступные действия:\n\n"
-        "ОС после встречи — заполнить обратную связь после просмотра\n"
-        "ОС после мероприятия — скоро добавим\n"
-        "Продажи — включить режим продаж\n"
-        "Заметка — добавить наблюдение или вопрос в базу\n\n"
-        "Команды:\n"
-        "/feedback\n"
-        "/sales\n"
-        "/note_add текст заметки\n"
-        "/notes",
+        "ОС после встречи — обратная связь после просмотра\n"
+        "ОС после мероприятия — обратная связь после мероприятия\n"
+        "Продажи — режим продаж\n"
+        "Заметка — добавить наблюдение\n\n"
+        "Для отмены заполнения: /cancel или кнопка «Отмена».",
         reply_markup=MAIN_KEYBOARD,
     )
 
@@ -284,9 +304,27 @@ async def feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 
+async def event_feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
+        return
+
+    file_path = export_event_feedback_to_xlsx()
+
+    with open(file_path, "rb") as file:
+        await update.message.reply_document(
+            document=file,
+            filename="event_feedback_export.xlsx"
+        )
+
+
 async def note_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-
     text = " ".join(context.args)
 
     if not text:
@@ -340,18 +378,9 @@ async def notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_menu_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text
 
-    if text == "ОС после встречи":
-        return await feedback_start(update, context)
-
-    if text == "ОС после мероприятия":
-        await update.message.reply_text(
-            "ОС после мероприятия скоро добавим.",
-            reply_markup=MAIN_KEYBOARD,
-        )
-        return
-
     if text == "Продажи":
-        return await sales_mode(update, context)
+        await sales_mode(update, context)
+        return
 
     if text == "Заметка":
         await update.message.reply_text(
@@ -412,58 +441,89 @@ def main():
         ],
         states={
             CLIENT_NAME: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_client_name
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_client_name),
             ],
             EVENT_DATE: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_event_date
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_event_date),
             ],
             EVENT_FORMAT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_event_format
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_event_format),
             ],
             GUESTS_COUNT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_guests_count
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_guests_count),
             ],
             CLIENT_REACTION: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_client_reaction
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_client_reaction),
             ],
             OBJECTIONS: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_objections
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_objections),
             ],
             NEXT_STEP: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_next_step
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_next_step),
             ],
             COMMENT: [
-                MessageHandler(
-                    filters.TEXT & ~filters.COMMAND,
-                    feedback_comment
-                )
+                MessageHandler(filters.Regex("^Отмена$"), feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, feedback_comment),
             ],
         },
-        fallbacks=[CommandHandler("cancel", feedback_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", feedback_cancel),
+        ],
+    )
+
+    event_feedback_handler = ConversationHandler(
+        entry_points=[
+            CommandHandler("event_feedback", event_feedback_start),
+            MessageHandler(filters.Regex("^ОС после мероприятия$"), event_feedback_start),
+        ],
+        states={
+            EVENT_TYPE: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_type),
+            ],
+            FACT_GUESTS: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_fact_guests),
+            ],
+            BEFORE_PROBLEMS: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_before_problems),
+            ],
+            DURING_PROBLEMS: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_during_problems),
+            ],
+            CLIENT_RATING: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_client_rating),
+            ],
+            WHAT_WENT_WELL: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_what_went_well),
+            ],
+            WHAT_TO_IMPROVE: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_what_to_improve),
+            ],
+            EVENT_COMMENT: [
+                MessageHandler(filters.Regex("^Отмена$"), event_feedback_cancel),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, event_feedback_comment),
+            ],
+        },
+        fallbacks=[
+            CommandHandler("cancel", event_feedback_cancel),
+        ],
     )
 
     app.add_handler(feedback_handler)
+    app.add_handler(event_feedback_handler)
 
     app.add_handler(CommandHandler("start", start))
     app.add_handler(CommandHandler("help", help_command))
@@ -477,6 +537,7 @@ def main():
     app.add_handler(CommandHandler("checklist", checklist))
 
     app.add_handler(CommandHandler("feedback_export", feedback_export))
+    app.add_handler(CommandHandler("event_feedback_export", event_feedback_export))
 
     app.add_handler(CommandHandler("note_add", note_add))
     app.add_handler(CommandHandler("notes", notes))
