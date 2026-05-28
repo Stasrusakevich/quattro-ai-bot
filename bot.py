@@ -15,6 +15,7 @@ from services.logger import logger
 from services.memory import save_message, get_conversation, clear_conversation
 from services.user_settings import set_user_mode, get_user_mode
 from services.knowledge import get_loaded_knowledge_files
+from services.manager_notes import add_note, get_last_notes
 
 from feedback import (
     feedback_start,
@@ -49,8 +50,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "Quattro AI Assistant запущен.\n\n"
         "/modes — режимы\n"
         "/sales — режим продаж\n"
-        "/feedback — обратная связь после просмотра\n"
-        "/feedback_export — экспорт feedback"
+        "/feedback — обратная связь\n"
+        "/note_add — добавить заметку\n"
+        "/notes — заметки менеджеров"
     )
 
 
@@ -73,12 +75,14 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/followup\n"
         "/checklist\n"
         "/feedback\n"
+        "/feedback_export\n"
+        "/note_add\n"
+        "/notes\n"
         "/cancel\n\n"
         "Admin:\n"
         "/status\n"
         "/memory\n"
-        "/clear\n"
-        "/feedback_export"
+        "/clear"
     )
 
 
@@ -99,6 +103,7 @@ async def knowledge(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     text = "Загруженные knowledge-файлы:\n\n" + "\n".join(files)
+
     await update.message.reply_text(text[:4000])
 
 
@@ -131,8 +136,7 @@ async def checklist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- формат мероприятия\n"
         "- количество гостей\n"
         "- дата\n"
-        "- ключевые задачи\n\n"
-        "Я подготовлю список проверки."
+        "- ключевые задачи"
     )
 
 
@@ -169,22 +173,34 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "assistant")
-    await update.message.reply_text("Включен общий режим.")
+
+    await update.message.reply_text(
+        "Включен общий режим."
+    )
 
 
 async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "sales")
-    await update.message.reply_text("Включен режим продаж.")
+
+    await update.message.reply_text(
+        "Включен режим продаж."
+    )
 
 
 async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "manager")
-    await update.message.reply_text("Включен режим менеджера.")
+
+    await update.message.reply_text(
+        "Включен режим менеджера."
+    )
 
 
 async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "operations")
-    await update.message.reply_text("Включен operations режим.")
+
+    await update.message.reply_text(
+        "Включен operations режим."
+    )
 
 
 async def memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -215,6 +231,7 @@ async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     clear_conversation(user_id)
+
     await update.message.reply_text("Память очищена.")
 
 
@@ -232,6 +249,47 @@ async def feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
             document=file,
             filename="feedback_export.xlsx"
         )
+
+
+async def note_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
+
+    text = " ".join(context.args)
+
+    if not text:
+        await update.message.reply_text(
+            "Напиши заметку после команды.\n\n"
+            "Пример:\n"
+            "/note_add Клиенты часто спрашивают про парковку"
+        )
+        return
+
+    add_note(user, text)
+
+    await update.message.reply_text("Заметка сохранена.")
+
+
+async def notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_id = update.effective_user.id
+
+    if not is_admin(user_id):
+        await update.message.reply_text("Нет доступа.")
+        return
+
+    rows = get_last_notes()
+
+    if not rows:
+        await update.message.reply_text("Заметок пока нет.")
+        return
+
+    text = "Последние заметки менеджеров:\n\n"
+
+    for created_at, first_name, username, note in rows:
+        author = first_name or username or "unknown"
+
+        text += f"• {created_at} — {author}\n{note}\n\n"
+
+    await update.message.reply_text(text[:4000])
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -336,7 +394,11 @@ def main():
     app.add_handler(CommandHandler("brief", brief))
     app.add_handler(CommandHandler("followup", followup))
     app.add_handler(CommandHandler("checklist", checklist))
+
     app.add_handler(CommandHandler("feedback_export", feedback_export))
+
+    app.add_handler(CommandHandler("note_add", note_add))
+    app.add_handler(CommandHandler("notes", notes))
 
     app.add_handler(CommandHandler("assistant", assistant_mode))
     app.add_handler(CommandHandler("sales", sales_mode))
