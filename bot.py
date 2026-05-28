@@ -1,4 +1,4 @@
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
@@ -41,6 +41,15 @@ from feedback import (
 from exports import export_feedback_to_xlsx
 
 
+MAIN_KEYBOARD = ReplyKeyboardMarkup(
+    [
+        ["ОС после встречи", "ОС после мероприятия"],
+        ["Продажи", "Заметка"],
+    ],
+    resize_keyboard=True,
+)
+
+
 def is_admin(user_id):
     return str(user_id) == str(ADMIN_USER_ID)
 
@@ -48,41 +57,24 @@ def is_admin(user_id):
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         "Quattro AI Assistant запущен.\n\n"
-        "/modes — режимы\n"
-        "/sales — режим продаж\n"
-        "/feedback — обратная связь\n"
-        "/note_add — добавить заметку\n"
-        "/notes — заметки менеджеров"
+        "Выберите действие в меню ниже.",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
 async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
-        "Команды Quattro AI:\n\n"
-        "/start\n"
-        "/help\n"
-        "/modes\n"
-        "/ping\n"
-        "/whoami\n"
-        "/knowledge\n\n"
-        "Режимы:\n"
-        "/assistant\n"
-        "/sales\n"
-        "/manager\n"
-        "/operations\n\n"
-        "Инструменты:\n"
-        "/brief\n"
-        "/followup\n"
-        "/checklist\n"
+        "Доступные действия:\n\n"
+        "ОС после встречи — заполнить обратную связь после просмотра\n"
+        "ОС после мероприятия — скоро добавим\n"
+        "Продажи — включить режим продаж\n"
+        "Заметка — добавить наблюдение или вопрос в базу\n\n"
+        "Команды:\n"
         "/feedback\n"
-        "/feedback_export\n"
-        "/note_add\n"
-        "/notes\n"
-        "/cancel\n\n"
-        "Admin:\n"
-        "/status\n"
-        "/memory\n"
-        "/clear"
+        "/sales\n"
+        "/note_add текст заметки\n"
+        "/notes",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -91,7 +83,8 @@ async def modes(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "/assistant — общий помощник\n"
         "/sales — продажи\n"
         "/manager — менеджер\n"
-        "/operations — операционка"
+        "/operations — операционка",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -99,12 +92,18 @@ async def knowledge(update: Update, context: ContextTypes.DEFAULT_TYPE):
     files = get_loaded_knowledge_files()
 
     if not files:
-        await update.message.reply_text("Файлы knowledge не найдены.")
+        await update.message.reply_text(
+            "Файлы knowledge не найдены.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     text = "Загруженные knowledge-файлы:\n\n" + "\n".join(files)
 
-    await update.message.reply_text(text[:4000])
+    await update.message.reply_text(
+        text[:4000],
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 async def brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -116,7 +115,8 @@ async def brief(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- бюджет\n"
         "- нужен ли кейтеринг\n"
         "- нужна ли техника\n"
-        "- особые пожелания"
+        "- особые пожелания",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -126,7 +126,8 @@ async def followup(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- какой был контакт\n"
         "- что обсуждали\n"
         "- что обещали клиенту\n"
-        "- следующий шаг"
+        "- следующий шаг",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -136,12 +137,16 @@ async def checklist(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "- формат мероприятия\n"
         "- количество гостей\n"
         "- дата\n"
-        "- ключевые задачи"
+        "- ключевые задачи",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
 async def ping(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("pong")
+    await update.message.reply_text(
+        "pong",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -150,7 +155,8 @@ async def whoami(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"Telegram user_id: {user.id}\n"
         f"Username: @{user.username}\n"
-        f"First name: {user.first_name}"
+        f"First name: {user.first_name}",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -158,7 +164,10 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await update.message.reply_text("Нет доступа.")
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     await update.message.reply_text(
@@ -167,7 +176,8 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "✅ AI: connected\n"
         "✅ Memory: active\n"
         "✅ SQLite: connected\n"
-        f"✅ Current mode: {get_user_mode(user_id)}"
+        f"✅ Current mode: {get_user_mode(user_id)}",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -175,7 +185,8 @@ async def assistant_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "assistant")
 
     await update.message.reply_text(
-        "Включен общий режим."
+        "Включен общий режим.",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -183,7 +194,9 @@ async def sales_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "sales")
 
     await update.message.reply_text(
-        "Включен режим продаж."
+        "Включен режим продаж.\n\n"
+        "Вставьте сообщение клиента, и я помогу подготовить ответ.",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -191,7 +204,8 @@ async def manager_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "manager")
 
     await update.message.reply_text(
-        "Включен режим менеджера."
+        "Включен режим менеджера.",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -199,7 +213,8 @@ async def operations_mode(update: Update, context: ContextTypes.DEFAULT_TYPE):
     set_user_mode(update.effective_user.id, "operations")
 
     await update.message.reply_text(
-        "Включен operations режим."
+        "Включен operations режим.",
+        reply_markup=MAIN_KEYBOARD,
     )
 
 
@@ -207,39 +222,57 @@ async def memory(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await update.message.reply_text("Нет доступа.")
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     conversation = get_conversation(user_id)
 
     if not conversation:
-        await update.message.reply_text("Память пустая.")
+        await update.message.reply_text(
+            "Память пустая.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     text = "\n\n".join(
         [f"{message['role']}: {message['content']}" for message in conversation]
     )
 
-    await update.message.reply_text(text[:4000])
+    await update.message.reply_text(
+        text[:4000],
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 async def clear(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await update.message.reply_text("Нет доступа.")
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     clear_conversation(user_id)
 
-    await update.message.reply_text("Память очищена.")
+    await update.message.reply_text(
+        "Память очищена.",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 async def feedback_export(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await update.message.reply_text("Нет доступа.")
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     file_path = export_feedback_to_xlsx()
@@ -260,36 +293,77 @@ async def note_add(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(
             "Напиши заметку после команды.\n\n"
             "Пример:\n"
-            "/note_add Клиенты часто спрашивают про парковку"
+            "/note_add Клиенты часто спрашивают про парковку",
+            reply_markup=MAIN_KEYBOARD,
         )
         return
 
     add_note(user, text)
 
-    await update.message.reply_text("Заметка сохранена.")
+    await update.message.reply_text(
+        "Заметка сохранена.",
+        reply_markup=MAIN_KEYBOARD,
+    )
 
 
 async def notes(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
 
     if not is_admin(user_id):
-        await update.message.reply_text("Нет доступа.")
+        await update.message.reply_text(
+            "Нет доступа.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     rows = get_last_notes()
 
     if not rows:
-        await update.message.reply_text("Заметок пока нет.")
+        await update.message.reply_text(
+            "Заметок пока нет.",
+            reply_markup=MAIN_KEYBOARD,
+        )
         return
 
     text = "Последние заметки менеджеров:\n\n"
 
     for created_at, first_name, username, note in rows:
         author = first_name or username or "unknown"
-
         text += f"• {created_at} — {author}\n{note}\n\n"
 
-    await update.message.reply_text(text[:4000])
+    await update.message.reply_text(
+        text[:4000],
+        reply_markup=MAIN_KEYBOARD,
+    )
+
+
+async def handle_menu_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text
+
+    if text == "ОС после встречи":
+        return await feedback_start(update, context)
+
+    if text == "ОС после мероприятия":
+        await update.message.reply_text(
+            "ОС после мероприятия скоро добавим.",
+            reply_markup=MAIN_KEYBOARD,
+        )
+        return
+
+    if text == "Продажи":
+        return await sales_mode(update, context)
+
+    if text == "Заметка":
+        await update.message.reply_text(
+            "Напишите заметку командой:\n\n"
+            "/note_add текст заметки\n\n"
+            "Пример:\n"
+            "/note_add Клиенты часто спрашивают про парковку",
+            reply_markup=MAIN_KEYBOARD,
+        )
+        return
+
+    await handle_message(update, context)
 
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -309,13 +383,17 @@ async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
         save_message(user_id, "assistant", ai_response)
 
-        await update.message.reply_text(ai_response)
+        await update.message.reply_text(
+            ai_response,
+            reply_markup=MAIN_KEYBOARD,
+        )
 
     except Exception as error:
         logger.error(f"AI ERROR FOR USER {user_id}: {error}")
 
         await update.message.reply_text(
-            "Ошибка AI Assistant. Проверь логи Railway."
+            "Ошибка AI Assistant. Проверь логи Railway.",
+            reply_markup=MAIN_KEYBOARD,
         )
 
 
@@ -328,7 +406,10 @@ def main():
     app = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
     feedback_handler = ConversationHandler(
-        entry_points=[CommandHandler("feedback", feedback_start)],
+        entry_points=[
+            CommandHandler("feedback", feedback_start),
+            MessageHandler(filters.Regex("^ОС после встречи$"), feedback_start),
+        ],
         states={
             CLIENT_NAME: [
                 MessageHandler(
@@ -412,7 +493,7 @@ def main():
     app.add_handler(
         MessageHandler(
             filters.TEXT & ~filters.COMMAND,
-            handle_message
+            handle_menu_buttons
         )
     )
 
