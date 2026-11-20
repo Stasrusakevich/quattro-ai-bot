@@ -1,0 +1,81 @@
+name: Quattro AI — check
+
+on:
+  push:
+    branches:
+      - main
+      - ci/quattro-ai-check
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: '3.12'
+          cache: pip
+      - name: Install and verify dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip check
+      - name: Check Python syntax
+        run: python -m compileall -q -x '(^|/)\.git(/|$)' .
+      - name: Check bot startup and SQLite initialization
+        env:
+          TELEGRAM_BOT_TOKEN: '123456789:offline-smoke-check'
+          GROQ_API_KEY: offline-smoke-check
+        run: |
+          python - <<'PY'
+          import sqlite3
+          from pathlib import Path
+          from tempfile import TemporaryDirectory
+          from unittest.mock import patch
+
+          from telegram.ext import Application
+
+          import bot
+          from database import db
+          from services.knowledge import get_loaded_knowledge_files
+
+          with TemporaryDirectory() as directory:
+              database = str(Path(directory) / "smoke.db")
+              with (
+                  patch.object(db, "DB_NAME", database),
+                  patch.object(Application, "run_polling", autospec=True) as polling,
+              ):
+                  bot.main()
+                  polling.assert_called_once()
+                  app = polling.call_args.args[0]
+                  commands = {
+                      command
+                      for handlers in app.handlers.values()
+                      for handler in handlers
+                      for command in getattr(handler, "commands", ())
+                  }
+                  if not {"start", "ping"}.issubset(commands):
+                      raise RuntimeError("Expected Telegram commands are missing")
+
+              with sqlite3.connect(database) as connection:
+                  tables = {
+                      row[0]
+                      for row in connection.execute(
+                          "SELECT name FROM sqlite_master WHERE type = 'table'"
+                      )
+                  }
+              expected = {"messages", "user_settings", "feedback", "event_feedback", "knowledge_notes"}
+              if not expected.issubset(tables):
+                  raise RuntimeError(f"Missing SQLite tables: {sorted(expected - tables)}")
+
+          if not get_loaded_knowledge_files():
+              raise RuntimeError("Bot knowledge files are missing")
+          PY
