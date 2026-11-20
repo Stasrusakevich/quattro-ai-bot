@@ -1,60 +1,27 @@
-from groq import Groq
+from openai import AsyncOpenAI
 
-from config import GROQ_API_KEY
-from services.memory import get_conversation
-from services.prompts import load_prompt
-from services.user_settings import get_user_mode
-from services.knowledge import load_all_knowledge
+from config import ROOT
 
 
-client = Groq(api_key=GROQ_API_KEY)
+class GPTUnavailable(Exception):
+    pass
 
 
-def get_prompt_by_mode(mode):
-    if mode == "sales":
-        return load_prompt("sales_prompt.txt")
-
-    if mode == "manager":
-        return load_prompt("manager_prompt.txt")
-
-    if mode == "operations":
-        return load_prompt("operations_prompt.txt")
-
-    return load_prompt("system_prompt.txt")
-
-
-def generate_ai_response(user_id, text):
-    mode = get_user_mode(user_id)
-
-    system_prompt = get_prompt_by_mode(mode)
-
-    knowledge = load_all_knowledge()
-
-    conversation = get_conversation(user_id)
-
-    messages = [
-        {
-            "role": "system",
-            "content": system_prompt
-        },
-        {
-            "role": "system",
-            "content": f"База знаний Quattro Space:\n\n{knowledge}"
-        }
-    ]
-
-    messages.extend(conversation)
-
-    messages.append(
-        {
-            "role": "user",
-            "content": text
-        }
-    )
-
-    chat_completion = client.chat.completions.create(
-        messages=messages,
-        model="llama-3.1-8b-instant"
-    )
-
-    return chat_completion.choices[0].message.content
+async def generate_ai_response(settings, text, history):
+    if not settings.openai_key:
+        raise GPTUnavailable("OPENAI_API_KEY is missing")
+    instructions = (ROOT / "prompts/system_prompt.txt").read_text(encoding="utf-8")
+    knowledge_path = ROOT / "knowledge/assistant.md"
+    if knowledge_path.is_file():
+        instructions += "\n\nСправка Quattro\n" + knowledge_path.read_text(encoding="utf-8")
+    async with AsyncOpenAI(api_key=settings.openai_key, timeout=45, max_retries=0) as client:
+        response = await client.responses.create(
+            model=settings.openai_model,
+            instructions=instructions,
+            input=[*history, {"role": "user", "content": text}],
+            max_output_tokens=2000,
+            store=False,
+        )
+    if response.status != "completed" or not response.output_text.strip():
+        raise GPTUnavailable("GPT returned an incomplete response")
+    return response.output_text.strip()
