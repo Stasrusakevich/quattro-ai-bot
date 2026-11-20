@@ -1,0 +1,38 @@
+[Unit]
+Description=Quattro Assistant Telegram bot
+Wants=network-online.target
+After=network-online.target
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=quattro-assistant
+Group=quattro-assistant
+WorkingDirectory=/opt/quattro-assistant/current
+EnvironmentFile=/etc/quattro-assistant.env
+Environment=DATA_DIR=/var/lib/quattro-assistant
+Environment=PYTHONUNBUFFERED=1
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/quattro-assistant/current/.venv/bin/python -B bot.py
+Restart=on-failure
+RestartSec=75
+KillSignal=SIGINT
+TimeoutStopSec=60
+UMask=0077
+StateDirectory=quattro-assistant
+StateDirectoryMode=0700
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/var/lib/quattro-assistant
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+
+[Install]
+WantedBy=multi-user.target
