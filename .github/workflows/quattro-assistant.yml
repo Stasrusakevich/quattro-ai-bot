@@ -1,0 +1,73 @@
+
+name: Quattro Assistant CI/CD
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Python tests
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements.txt
+          python -m pip check
+
+      - name: Test bot
+        run: python -B -m unittest discover -s tests -v
+
+      - name: Test deployment tools
+        run: python -B -m unittest discover -s deploy -p 'test_*.py' -v
+
+  deploy:
+    name: Deploy to VPS
+    needs: test
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    concurrency:
+      group: quattro-assistant-production
+      cancel-in-progress: false
+
+    steps:
+      - name: Deploy verified main commit
+        shell: bash
+        env:
+          QUATTRO_VPS_SSH_KEY: ${{ secrets.QUATTRO_VPS_SSH_KEY }}
+          QUATTRO_VPS_KNOWN_HOSTS: ${{ secrets.QUATTRO_VPS_KNOWN_HOSTS }}
+        run: |
+          set -euo pipefail
+          SSH_DIR=$(mktemp -d)
+          trap 'rm -rf "$SSH_DIR"' EXIT
+
+          chmod 700 "$SSH_DIR"
+          printf '%s\n' "$QUATTRO_VPS_SSH_KEY" > "$SSH_DIR/key"
+          printf '%s\n' "$QUATTRO_VPS_KNOWN_HOSTS" > "$SSH_DIR/known_hosts"
+          chmod 600 "$SSH_DIR/key" "$SSH_DIR/known_hosts"
+
+          printf '%s\n' "$GITHUB_SHA" | ssh -T \
+            -i "$SSH_DIR/key" \
+            -o IdentitiesOnly=yes \
+            -o BatchMode=yes \
+            -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$SSH_DIR/known_hosts" \
+            quattro-assistant-ci@147.45.134.70 \
+            sudo -n /usr/local/sbin/quattro-assistant-deploy
