@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import os
 from pathlib import Path
 
@@ -13,10 +13,40 @@ class Settings:
     token: str
     owner_id: int
     data_dir: Path
-    openai_key: str = ""
+    openai_key: str = field(default="", repr=False)
     openai_model: str = "gpt-5-mini"
     allowed_user_ids: frozenset[int] = frozenset()
     allowed_chat_ids: frozenset[int] = frozenset()
+    # Opt-in even when an old environment already contains provider keys.
+    ai_enabled: bool = False
+    ai_provider: str = "deepseek"
+    ai_model: str = ""
+    deepseek_key: str = field(default="", repr=False)
+    anthropic_key: str = field(default="", repr=False)
+
+    @property
+    def ai_model_id(self):
+        return self.ai_model or {
+            "deepseek": "deepseek-flash",
+            "openai": self.openai_model,
+            "anthropic": "claude-sonnet-4-6",
+        }.get(self.ai_provider, "")
+
+    @property
+    def ai_key_name(self):
+        return {
+            "deepseek": "DEEPSEEK_API_KEY",
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+        }.get(self.ai_provider, "")
+
+    @property
+    def ai_key(self):
+        return {
+            "deepseek": self.deepseek_key,
+            "openai": self.openai_key,
+            "anthropic": self.anthropic_key,
+        }.get(self.ai_provider, "")
 
 
 def load_settings():
@@ -49,4 +79,10 @@ def load_settings():
         openai_model=os.getenv("OPENAI_MODEL", "gpt-5-mini").strip(),
         allowed_user_ids=frozenset(users),
         allowed_chat_ids=chats,
+        # Unrecognized values fail closed without preventing notes/tasks.
+        ai_enabled=os.getenv("AI_ENABLED", "false").strip().lower() == "true",
+        ai_provider=os.getenv("AI_PROVIDER", "deepseek").strip().lower(),
+        ai_model=os.getenv("AI_MODEL", "").strip(),
+        deepseek_key=os.getenv("DEEPSEEK_API_KEY", "").strip(),
+        anthropic_key=os.getenv("ANTHROPIC_API_KEY", "").strip(),
     )

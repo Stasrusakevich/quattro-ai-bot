@@ -1,6 +1,7 @@
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing
+from dataclasses import replace
 from pathlib import Path
 import tempfile
 from types import SimpleNamespace
@@ -265,6 +266,50 @@ class RoutingTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual(len(history), 2)
             self.assertNotIn("Публичное", str(history))
 
+    async def test_private_ai_history_excludes_other_user_and_failed_requests(self):
+        with patch.object(bot, "generate_ai_response", new_callable=AsyncMock, return_value="Ответ") as ai:
+            await self.emit(text="/gpt Моё личное", command="/gpt")
+            await self.emit(message_id=2, text="/gpt Чужое личное", command="/gpt", user_id=43, chat_id=43)
+            ai.side_effect = GPTUnavailable
+            await self.emit(message_id=3, text="/gpt Неуспешное", command="/gpt")
+            ai.side_effect = None
+            await self.emit(message_id=4, text="/gpt Продолжение", command="/gpt")
+            self.assertEqual(ai.await_args.args[2], [
+                {"role": "user", "content": "/gpt Моё личное"}, {"role": "assistant", "content": "Ответ"},
+            ])
+
+    async def test_disabled_ai_with_all_keys_saves_request_and_allows_next_note(self):
+        self.application.bot_data["settings"] = replace(
+            self.settings, ai_enabled=False, openai_key="offline-openai",
+            deepseek_key="offline-deepseek", anthropic_key="offline-anthropic",
+        )
+        with patch("services.ai.AsyncOpenAI") as sdk, patch("services.ai.httpx.AsyncClient") as http:
+            await self.emit(text="/gpt Вопрос", command="/gpt")
+            sdk.assert_not_called()
+            http.assert_not_called()
+        await self.emit(message_id=2, text="Заметка при выключенном AI")
+        self.assertEqual(len(self.database.inbox()), 1)
+        self.assertEqual(self.database.ai_history(42, 999, chat_id=42), [])
+        self.assertEqual(self.application.bot_data["gpt_active_users"], set())
+
+    async def test_denied_users_and_groups_never_reach_ai(self):
+        with patch.object(bot, "generate_ai_response", new_callable=AsyncMock) as ai:
+            await self.emit(text="/gpt Вопрос", command="/gpt", user_id=88, chat_id=88)
+            await self.emit(message_id=2, text="/gpt Вопрос", command="/gpt", chat_id=-10099, chat_type="group")
+            ai.assert_not_awaited()
+
+    async def test_status_reports_selected_ai_only_to_owner(self):
+        self.application.bot_data["settings"] = replace(
+            self.settings, ai_enabled=True, ai_provider="anthropic", anthropic_key="private-key",
+        )
+        await self.emit(text="/status", command="/status", user_id=999, chat_id=999)
+        self.assertTrue(any("anthropic / claude-sonnet-4-6" in call.kwargs["text"] for call in self.messages.await_args_list))
+        self.assertTrue(all("private-key" not in call.kwargs["text"] for call in self.messages.await_args_list))
+        self.messages.reset_mock()
+        await self.emit(message_id=2, text="/status", command="/status")
+        await self.emit(message_id=3, text="/status", command="/status", user_id=999, chat_id=-10042, chat_type="group")
+        self.messages.assert_not_awaited()
+
     async def test_menu_task_then_cancel_returns_to_notes(self):
         await self.emit(text="Задача Стасу")
         await self.emit(message_id=2, text="Согласовать договор")
@@ -275,12 +320,13 @@ class RoutingTests(unittest.IsolatedAsyncioTestCase):
 
 class GPTTests(unittest.IsolatedAsyncioTestCase):
     async def test_missing_key_fails_only_explicit_gpt_request(self):
-        settings = Settings("token", 999, Path("unused"))
+        settings = Settings("token", 999, Path("unused"), ai_enabled=True, ai_provider="openai")
         with self.assertRaises(GPTUnavailable):
             await generate_ai_response(settings, "question", [])
 
     async def test_openai_request_uses_responses_and_no_shared_storage(self):
-        settings = Settings("token", 999, Path("unused"), openai_key="offline")
+        settings = Settings("token", 999, Path("unused"), openai_key="offline",
+                            ai_enabled=True, ai_provider="openai")
         response = SimpleNamespace(status="completed", output_text="Ответ GPT")
         client = SimpleNamespace(responses=SimpleNamespace(create=AsyncMock(return_value=response)))
         manager = AsyncMock()

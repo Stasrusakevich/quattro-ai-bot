@@ -7,7 +7,7 @@ from telegram.ext import Application, ApplicationHandlerStop, CommandHandler, Co
 
 from config import load_settings
 from database.db import Database, split_text
-from services.ai import generate_ai_response
+from services.ai import ai_status, generate_ai_response
 from services.delivery import deliver_notifications
 from services.logger import logger
 from services.runtime import instance_lock
@@ -191,8 +191,7 @@ async def status(update: Update, context: ContextTypes.DEFAULT_TYPE):
     settings, database = resources(context)
     if update.effective_user.id != settings.owner_id or update.effective_chat.type != "private":
         return
-    ai_status = "ключ задан, соединение проверяется при запросе" if settings.openai_key else "требуется OPENAI_API_KEY"
-    await update.message.reply_text(f"Бот работает.\nGPT — {ai_status}.\nУведомления — {database.delivery_counts()}.")
+    await update.message.reply_text(f"Бот работает.\nAI — {ai_status(settings)}.\nУведомления — {database.delivery_counts()}.")
 
 
 async def retry_notifications(update: Update, context: ContextTypes.DEFAULT_TYPE):
